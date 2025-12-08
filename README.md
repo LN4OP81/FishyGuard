@@ -26,8 +26,8 @@ FishyGuard is a Python desktop application that detects phishing content in emai
    python fishyguard.py
    ```
 
-Usage
 
+Usage:
 Launch the app, enter email or message text, and get instant phishing detection results. The app logs past predictions in the local database for review.
 
 Requirements:
