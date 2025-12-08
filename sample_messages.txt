@@ -1,0 +1,31 @@
+
+--- Sample Phishing Messages ---
+
+1. Urgent Account Suspension:
+"Urgent: Your account has been suspended due to suspicious activity. Please click on the following link to verify your identity immediately: http://malicious-link.com/verify Failure to do so will result in permanent account closure."
+
+2. Fake Invoice/Payment Request:
+"Dear Customer, your recent payment of $499.99 for order #12345 is confirmed. If you did not authorize this transaction, please click here to cancel and dispute the charge: http://fake-billing.net/dispute"
+
+3. Prize/Lottery Scam:
+"Congratulations! You have been selected as a winner in our annual lottery. To claim your prize of $1,000,000, please provide your banking details and personal information at: http://winner-claim.info/prize"
+
+4. Security Alert / Password Reset:
+"We detected unusual login activity on your account. For your security, we have temporarily locked your account. Please reset your password by visiting: http://security-update.biz/reset"
+
+5. Delivery Notification Scam:
+"Your package delivery has been delayed. To reschedule and avoid further charges, please update your delivery preferences here: http://delivery-status.co/update"
+
+--- Sample Legitimate Messages ---
+
+1. Meeting Reminder:
+"Hi team, just a reminder about our meeting tomorrow at 10am in Conference Room B. Please review the attached agenda before then. Thanks!"
+
+2. Order Confirmation:
+"Thank you for your recent order #67890 from ExampleStore. Your items have shipped and are expected to arrive by Friday. You can track your order here: https://www.examplestore.com/track?id=67890"
+
+3. Newsletter Subscription:
+"Welcome to our newsletter! You've successfully subscribed to receive weekly updates from OurCompany. You can manage your preferences or unsubscribe at any time through your account settings."
+
+4. Internal Memo:
+"Subject: Upcoming Holiday Schedule. This is a reminder that our offices will be closed on December 25th and January 1st. Please plan your work accordingly."
