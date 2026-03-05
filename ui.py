@@ -1,97 +1,175 @@
 import tkinter as tk
-from tkinter import scrolledtext, messagebox, ttk
-from model import PhishingModel
-from database import PredictionHistory
-import base64
-from PIL import Image, ImageTk
-import io
+from tkinter import messagebox, ttk, TOP, BOTH, Toplevel
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-class FishyGuardUI:
-    def __init__(self, master):
-        self.master = master
-        master.title("FishyGuard")
-        master.geometry("800x600")
+class PhishingUI:
+    def __init__(self, root, model_engine, db, analyst=None):
+        self.root = root
+        self.model = model_engine
+        self.db = db
+        self.analyst = analyst
+        
+        self.root.title("FishyGuard")
+        self.root.geometry("1000x700")
+        self.root.configure(bg="#0f172a")
+        
+        self.setup_styles()
+        self.setup_ui()
 
-        # --- Style ---
-        self.style = ttk.Style()
-        self.style.theme_use('clam')
-        self.style.configure("TLabel", background="#f0f0f0", foreground="#333")
-        self.style.configure("TFrame", background="#f0f0f0")
-        self.style.configure("TButton", background="#0078d7", foreground="white", font=('Helvetica', 10, 'bold'))
-        self.style.map("TButton", background=[('active', '#005a9e')])
-        self.style.configure("Treeview", rowheight=25, fieldbackground="#f0f0f0")
-        self.style.configure("Treeview.Heading", font=('Helvetica', 10, 'bold'))
+    def setup_styles(self):
+        style = ttk.Style()
+        style.theme_use("clam")
+        style.configure("Treeview", 
+                        background="#1e293b", 
+                        foreground="#f8fafc", 
+                        fieldbackground="#1e293b",
+                        rowheight=25,
+                        font=("Segoe UI", 9))
+        style.configure("Treeview.Heading", 
+                        background="#334155", 
+                        foreground="#f8fafc", 
+                        font=("Segoe UI", 10, "bold"))
+        style.map("Treeview", background=[('selected', '#38bdf8')])
 
-        self.model = PhishingModel()
-        self.db = PredictionHistory()
+    def setup_ui(self):
+        # --- LEFT SIDEBAR ---
+        self.sidebar = tk.Frame(self.root, bg="#1e293b", width=220)
+        self.sidebar.pack(side="left", fill="y")
+        
+        tk.Label(self.sidebar, text="FISHY-GUARD", font=("Segoe UI", 18, "bold"), 
+                 bg="#1e293b", fg="#38bdf8").pack(pady=20)
+        
+        btn_config = {"font": ("Segoe UI", 10, "bold"), "relief": "flat", "padx": 10, "pady": 10, "cursor": "hand2"}
+        
+        # Dashboard Button
+        tk.Button(self.sidebar, text="📊 VIEW ANALYTICS", command=self.show_dashboard,
+                  bg="#1e293b", fg="white", **btn_config).pack(fill="x", padx=15, pady=5)
+        
+        # Clear Text Button
+        tk.Button(self.sidebar, text="🧹 CLEAR INPUT", command=self.clear_text_input,
+                  bg="#1e293b", fg="white", highlightthickness=1, 
+                  highlightbackground="#334155", **btn_config).pack(fill="x", padx=15, pady=5)
+        
+        # Clear History Button
+        tk.Button(self.sidebar, text="🗑 WIPE LOGS", command=self.clear_ui_history,
+                  bg="#1e293b", fg="white", **btn_config).pack(fill="x", padx=15, pady=5)
 
-        # --- Main frame ---
-        main_frame = ttk.Frame(master, padding="10")
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        # --- MAIN WORKSPACE ---
+        self.main_area = tk.Frame(self.root, bg="#0f172a")
+        self.main_area.pack(side="right", expand=True, fill="both", padx=30, pady=20)
 
-        # --- Input frame ---
-        input_frame = ttk.LabelFrame(main_frame, text="Enter Email Text", padding="10")
-        input_frame.pack(fill=tk.X, pady=5)
+        tk.Label(self.main_area, text="Paste email content for forensic analysis:",
+                 font=("Segoe UI", 10), bg="#0f172a", fg="#94a3b8").pack(anchor="w", pady=(0, 10))
+        
+        self.text_input = tk.Text(self.main_area, height=12, bg="#1e293b", fg="#f8fafc",
+                                   insertbackground="white", font=("Consolas", 11),
+                                   padx=15, pady=15, relief="flat")
+        self.text_input.pack(fill="x", pady=(0, 15))
 
-        self.text_area = scrolledtext.ScrolledText(input_frame, wrap=tk.WORD, height=10, font=('Helvetica', 10))
-        self.text_area.pack(fill=tk.X, expand=True, padx=5, pady=5)
+        # SCAN BUTTON
+        self.scan_btn = tk.Button(self.main_area, text="SCAN", command=self.scan_email,
+                                  bg="#10b981", fg="white", font=("Segoe UI", 12, "bold"),
+                                  relief="flat", pady=12, cursor="hand2")
+        self.scan_btn.pack(fill="x", pady=5)
 
-        self.analyze_button = ttk.Button(input_frame, text="Analyze", command=self.analyze_text)
-        self.analyze_button.pack(pady=5)
+        self.result_label = tk.Label(self.main_area, text="SYSTEM READY", font=("Segoe UI", 11, "bold"),
+                                     bg="#0f172a", fg="#94a3b8")
+        self.result_label.pack(pady=15)
 
-        # --- Result frame ---
-        result_frame = ttk.LabelFrame(main_frame, text="Analysis Result", padding="10")
-        result_frame.pack(fill=tk.X, pady=5)
+        # History Section
+        tk.Label(self.main_area, text="SCAN LOG HISTORY", font=("Segoe UI", 10, "bold"),
+                 bg="#0f172a", fg="#38bdf8").pack(anchor="w", pady=(10, 5))
 
-        self.result_label = ttk.Label(result_frame, text="Awaiting analysis...", font=("Helvetica", 14, "italic"), foreground="#888")
-        self.result_label.pack(pady=10)
-
-        # --- History frame ---
-        history_frame = ttk.LabelFrame(main_frame, text="Prediction History", padding="10")
-        history_frame.pack(fill=tk.BOTH, expand=True, pady=5)
-
-        self.history_tree = ttk.Treeview(history_frame, columns=("Timestamp", "Text", "Prediction"), show="headings")
-        self.history_tree.heading("Timestamp", text="Timestamp")
-        self.history_tree.heading("Text", text="Text")
-        self.history_tree.heading("Prediction", text="Prediction")
-        self.history_tree.column("Timestamp", width=150, anchor='w')
-        self.history_tree.column("Text", width=400, anchor='w')
-        self.history_tree.column("Prediction", width=100, anchor='center')
-        self.history_tree.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
-
+        self.history_tree = ttk.Treeview(self.main_area, columns=("ID", "Prediction", "Score", "Time"), show='headings')
+        self.history_tree.heading("ID", text="ID")
+        self.history_tree.heading("Prediction", text="RESULT")
+        self.history_tree.heading("Score", text="CONFIDENCE")
+        self.history_tree.heading("Time", text="TIMESTAMP")
+        self.history_tree.pack(fill=BOTH, expand=True)
+        
         self.load_history()
 
-    def analyze_text(self):
-        text = self.text_area.get("1.0", tk.END).strip()
-        if not text:
-            messagebox.showwarning("Input Error", "Please enter some text to analyze.")
+    def clear_text_input(self):
+        self.text_input.delete("1.0", tk.END)
+        self.result_label.config(text="SYSTEM READY", fg="#94a3b8")
+        self.scan_btn.config(bg="#10b981")
+
+    def scan_email(self):
+        email_content = self.text_input.get("1.0", tk.END).strip()
+        if not email_content:
+            messagebox.showwarning("Warning", "Please enter email text.")
             return
 
-        self.analyze_button.config(state=tk.DISABLED)
-        self.result_label.config(text="Analyzing...", foreground="#888", font=("Helvetica", 14, "italic"))
-        self.master.update_idletasks()
+        result = self.model.predict(email_content)
+        prediction = result['label']
+        score = result['score']
 
-        try:
-            prediction, confidence = self.model.predict(text)
-            self.db.add_prediction(text, prediction, confidence)
-            self.load_history()
+        if prediction == "Phishing":
+            self.result_label.config(text=f"CRITICAL: {prediction} ({score:.2f})", fg="#ef4444")
+            self.scan_btn.config(bg="#ef4444")
+        else:
+            self.result_label.config(text=f"SAFE: {prediction} ({score:.2f})", fg="#10b981")
+            self.scan_btn.config(bg="#10b981")
 
-            if prediction == "Phishing":
-                self.result_label.config(text=f"Phishing ({confidence:.2f})", foreground="red", font=("Helvetica", 14, "bold"))
-            else:
-                self.result_label.config(text=f"Safe ({confidence:.2f})", foreground="green", font=("Helvetica", 14, "bold"))
+        self.db.add_prediction(email_content, prediction, score)
+        self.load_history()
 
-        except Exception as e:
-            messagebox.showerror("Error", f"An error occurred during analysis: {e}")
-            self.result_label.config(text="Error", foreground="orange")
-        finally:
-            self.analyze_button.config(state=tk.NORMAL)
+        if prediction == "Phishing" and self.analyst:
+            if messagebox.askyesno("Deep-Dive", "Threat detected. Run AI Forensic Analysis?"):
+                self.run_deep_dive(email_content)
+
+    def run_deep_dive(self, text):
+        analysis = self.analyst.analyze_threat(text)
+        dive_window = Toplevel(self.root)
+        dive_window.title("Forensic Analysis Report")
+        dive_window.geometry("600x500")
+        dive_window.configure(bg="#0f172a")
+        
+        tk.Label(dive_window, text="AI ANALYST REPORT", font=("Segoe UI", 14, "bold"), 
+                 bg="#0f172a", fg="#38bdf8").pack(pady=10)
+
+        report_text = tk.Text(dive_window, wrap=tk.WORD, padx=20, pady=20, 
+                              bg="#1e293b", fg="#f8fafc", font=("Consolas", 10), relief="flat")
+        report_text.insert(tk.END, analysis)
+        report_text.config(state=tk.DISABLED)
+        report_text.pack(fill=BOTH, expand=True, padx=20, pady=20)
 
     def load_history(self):
         for i in self.history_tree.get_children():
             self.history_tree.delete(i)
-        
-        history = self.db.get_all_predictions()
-        for row in history:
-            # id, text, prediction, score, timestamp
-            self.history_tree.insert("", tk.END, values=(row[4], row[1][:70] + "...", row[2]))
+        for row in self.db.get_all_predictions():
+            self.history_tree.insert("", tk.END, values=(row[0], row[2], f"{row[3]:.2f}", row[4]))
+
+    def clear_ui_history(self):
+        if messagebox.askyesno("Confirm", "Delete all detection history?"):
+            self.db.clear_history()
+            self.load_history()
+            self.result_label.config(text="SYSTEM READY", fg="#94a3b8")
+            self.scan_btn.config(bg="#10b981")
+
+    def show_dashboard(self):
+        stats = self.db.get_stats()
+        trends = self.db.get_daily_trends()
+        dashboard_window = Toplevel(self.root)
+        dashboard_window.title("Security Analytics Dashboard")
+        dashboard_window.geometry("900x550")
+        dashboard_window.configure(bg="#0f172a")
+
+        plt.style.use('dark_background')
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5), facecolor="#0f172a")
+        labels = list(stats.keys())
+        values = list(stats.values())
+        if any(values):
+            ax1.pie(values, labels=labels, autopct='%1.1f%%', startangle=140, colors=['#10b981', '#ef4444'])
+        ax1.set_title("Detection Distribution")
+        if trends:
+            dates = [t[0] for t in trends]
+            counts = [t[1] for t in trends]
+            ax2.bar(dates, counts, color='#38bdf8')
+            ax2.set_title("Threats Over Time")
+            plt.setp(ax2.get_xticklabels(), rotation=45)
+        plt.tight_layout()
+        canvas = FigureCanvasTkAgg(fig, master=dashboard_window)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill=BOTH, expand=True, padx=10, pady=10)
