@@ -1,6 +1,6 @@
-# AI Phishing Detection Engine
+# FishyGuard
 
-AI Phishing Detection Engine is a Python-based desktop cybersecurity tool that detects phishing emails using a hybrid AI detection system.  
+FishyGuard is a Python-based desktop cybersecurity tool that detects phishing emails using a hybrid AI detection system.  
 It combines a transformer-based machine learning model with rule-based filtering and provides an interactive graphical interface for analyzing suspicious email content.
 
 The system also stores scan history, provides analytics dashboards, and allows deeper forensic analysis using AI.
